@@ -25,3 +25,10 @@ run independently of the others.
 - MATLAB with the Optimization Toolbox (`Optimization/` uses `fmincon`)
   and the Statistics and Machine Learning Toolbox (`Computer_model/`
   uses `ksdensity`).
+
+## Note on Annotation Colours:
+ 
+In the manuscript figures, tips are shown in green to match the Six2-GFP 
+signal. In the annotation files, however, they are marked in red, 
+because red marks stand out against the green fluorescence of the 
+micrographs, whereas green marks would have been hard to see.
