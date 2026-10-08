@@ -26,6 +26,13 @@ image = imread('s3.png');
 %   black  -> stalks
 %   yellow -> inactive/collided entities
 % (green is also computed but not used further)
+% NOTE ON ANNOTATION COLOURS: in the manuscript figures, active tips are
+% shown in green, to match the Six2-GFP signal in the micrographs. In the
+% annotation files read here, active tips are instead marked in red
+% for practical reasons: red marks stand out better against the green
+% fluorescence of the micrographs, whereas green marks would have been
+% hard to see.
+
 black_channel = sum(image, 3) == 0; % black assumed to be RGB [0 0 0]
 red_channel = image(:,:,1)-image(:,:,2)==255;
 yellow_channel = image(:,:,2)-image(:,:,3)==255;
@@ -40,9 +47,9 @@ print=0;       % 1 = enable console debug output during the stall/restart transi
 crow=0;        % 1 = enable the "crowding" rule that suppresses growth in saturated neighborhoods
 tconf=0;       % 1 = build a synthetic "T"-shaped stalk from scratch (ignores the image)
 tcut=0;        % 1 = build two synthetic stalk segments from scratch (ignores the image)
-bisect=1;      % 1 = cut the domain along the vertical midline partway through the run and continue (the "restart" feature)
+bisect=0;      % 1 = cut the domain along the vertical midline partway through the run and continue (the "restart" feature)
 I=size(image)
-f = 800; % number of "time units" simulated in the first run; each unit is split into 10 steps below (f*10 steps total)
+f = 900;%900;%930; % number of "time units" simulated in the first run; each unit is split into 10 steps below (f*10 steps total)
 rsc=1; % density rescaling factor (currently a no-op since rsc=1)
 bs=0.97623; % branching-saturation fraction (gcb is centered on bs*as)
 gcv=0.014; % stall-condition threshold
@@ -200,7 +207,7 @@ A(nbox/2-4,13,1)=800.; % right tip
 end
 
 % Numerical Parameters
-dx = X(2) - X(1);
+dx = 1/nbox;
 dt = 0.0015;
 
 % Normalize pixel counts into densities: each tip corresponds to 953 pixels
@@ -410,9 +417,11 @@ for t = 2:f*10
             if cij<90. % clamp cij to avoid division blow-up when concentration is very low
                 cij=90.;
             end
-            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+%            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*gcb*aij*gc-dt*pc*rb*aij*(1-gc)+dt*ste;
             S(i,j,t) = S(i,j,t-1) + dt*rg*aij*gc;
-            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+%            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gc);
           else
             A(i,j,t) = A(i,j,t-1);
             S(i,j,t) = S(i,j,t-1);
@@ -533,15 +542,17 @@ if (collision == 1)
      Sd(k) = A(12,10,k);
    end
 figure(6)
-% Create a time vector that maps the step indices (1 to f*10) to hours (0 to 26)
-tim = linspace(0, 26, length(Sc));
+% Convert nsteps (f*10) to hours
+hours= dt*f*10*2;
+tim = linspace(0, hours, length(Sc));
+%tim = linspace(0, 26, length(Sc));
 % Plot with the rescaled (hours) x-axis
 plot(tim, Sc * 0.04444, 'g-', 'LineWidth', 4, 'MarkerFaceColor', 'g');
 hold on
 plot(tim, Ct * 0.04444, 'b-', 'LineWidth', 4, 'MarkerFaceColor', 'b');
 
 % Axis formatting
-xlim([0 26]);
+xlim([0 hours]);
 ylim([0 60]);
 xlabel('t (hours)', 'FontSize', 28);
 ylabel('Concentration (mm^{-2})', 'FontSize', 28);
@@ -679,15 +690,15 @@ for j=1:nbox   % j is the "row" direction
             A(j,nbox/2+1,t) = A(j,nbox/2+1,t)/dcut;
             S(j,nbox/2+1,t) = S(j,nbox/2+1,t)/dcut;
             C(j,nbox/2+1,t) = C(j,nbox/2+1,t)/dcut;
-            stall(j,nbox/2+1) = 1;
+%            stall(j,nbox/2+1) = 1;
             A(j,nbox/2,t) = A(j,nbox/2,t)/dcut1;
             S(j,nbox/2,t) = S(j,nbox/2,t)/dcut1;
             C(j,nbox/2,t) = C(j,nbox/2,t)/dcut1;
-            stall(j,nbox/2) = 1;
+%            stall(j,nbox/2) = 1;
             A(j,nbox/2-1,t) = A(j,nbox/2-1,t)/dcut2;
             S(j,nbox/2-1,t) = S(j,nbox/2-1,t)/dcut2;
             C(j,nbox/2-1,t) = C(j,nbox/2-1,t)/dcut2;
-            stall(j,nbox/2-1) = 1;
+%            stall(j,nbox/2-1) = 1;
 end
         figure(11)
         surf(X,Y,(A(:,:,t))*0.044444,'LineStyle','none')
@@ -815,9 +826,11 @@ colorbar;
             if cij<90. % clamp cij to avoid division blow-up when concentration is very low
                 cij=90.;
             end
-            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+%            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*gcb*aij*gc-dt*pc*rb*aij*(1-gc)+dt*ste;
             S(i,j,t) = S(i,j,t-1) + dt*rg*aij*gc;
-            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+%            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gc);
           else
             A(i,j,t) = A(i,j,t-1);
             S(i,j,t) = S(i,j,t-1);
