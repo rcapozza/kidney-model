@@ -33,7 +33,7 @@ green_channel = image(:,:,2)-image(:,:,1)>50;
 
 % Initial Variable Setup
 I=size(image)
-f=1300; % number of "time units" simulated; each unit is split into 10 steps below (f*10 steps total)
+f=1200; % number of "time units" simulated; each unit is split into 10 steps below (f*10 steps total)
 nbox = 20; % number of boxes to divide the lateral field into (spatial grid resolution)
 npix = fix(I(1)/nbox)% pixels per box; assumes the image is square, fix() keeps the integer part
 A = zeros(nbox,nbox,f*10); % active-tip density over time
@@ -65,8 +65,8 @@ for j=1:nbox
 end
 
 % Numerical Parameters
-dx = X(2) - X(1);
-dt = 0.001;
+dx = 1/nbox;
+dt = 0.0015;
 
 % Normalize pixel counts into densities: each tip corresponds to 953 pixels
 A=A/(953*dx*dx);
@@ -165,10 +165,14 @@ for t = 2:f*10
           % Update the three densities for boxes with enough surrounding
           % concentration that have not stalled; otherwise freeze them
           if Ct > 0.1 & stall(i,j)>0.1
-            cij=cij+20.;
-            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+            if cij<90. % clamp cij to avoid division blow-up when concentration is very low
+                  cij=90.;
+            end
+%            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*rb*aij*(1-gcb)+dt*ste;
+            A(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb*gc-dt*pc*rb*aij*(1-gc)+dt*ste;
             S(i,j,t) = S(i,j,t-1) + dt*rg*aij*gc;
-            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+%            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gcb);
+            C(i,j,t)=C(i,j,t-1)+dt*rb*pc*aij*(1-gc);
           else
             A(i,j,t) = A(i,j,t-1);
             S(i,j,t) = S(i,j,t-1);
@@ -183,7 +187,7 @@ for t = 2:f*10
         if gc<gcv
           stall(i,j)=0;
         end
-        if gc>0.9
+        if gc>0.1
           stall(i,j)=1;
         end
         end

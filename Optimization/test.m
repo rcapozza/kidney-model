@@ -45,7 +45,7 @@ for j=1:nbox
 end
 
 % Normalize pixel counts into densities: each tip corresponds to 953 pixels
-dx = X(2) - X(1);
+dx = 1/nbox;
 Af=Af/(953*dx*dx);
 Sf=Sf/(953*dx*dx);
 Cf=Cf/(953*dx*dx);
