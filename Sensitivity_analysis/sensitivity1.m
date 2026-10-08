@@ -12,7 +12,7 @@
 clear all
 close all
 % Number of time steps for the simulation
-f = 1300;
+f = 1200;
 nbox = 20;
 % Preprocess the image and get the initial density matrices
 [A, S, C] = preprocess_image('s3.png', nbox, f);

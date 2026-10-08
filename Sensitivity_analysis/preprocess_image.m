@@ -53,7 +53,7 @@ function [A, S, C] = preprocess_image(image_path, nbox, f)
     end
     X = linspace(0,1,nbox);% row vector of nbox evenly spaced points between 0 and 1
     Y = linspace(0,1,nbox);% in this model's scale, 0->1 corresponds to about 0->1 mm
-    dx = X(2) - X(1);
+    dx = 1/nbox;
 
     % Normalize pixel counts into densities: each tip corresponds to 953 pixels
     A = A/(953*dx*dx);

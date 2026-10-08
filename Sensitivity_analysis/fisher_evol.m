@@ -13,7 +13,7 @@ function [At, St, Ct] = fisher_evol(f, as, dif, pc, gcv, bs, rb, rg, scale, A, S
     %                  into 10 steps below (f*10 steps total)
     %   as           - saturation threshold (inactivation)
     %   dif          - diffusion coefficient
-    %   pc           - fraction of saturated tips that collide
+    %   pc           - inactive-tip production rate
     %   gcv          - stall-condition threshold
     %   bs           - branching-saturation gate centre. Note: unlike
     %                  fisher4.m (which computes zb=(cij-bs*as)/b from a
@@ -42,7 +42,7 @@ function [At, St, Ct] = fisher_evol(f, as, dif, pc, gcv, bs, rb, rg, scale, A, S
     X = linspace(0, 1, nbox); % row vector of nbox evenly spaced points between 0 and 1
     Y = linspace(0, 1, nbox); % in this model's scale, 0->1 corresponds to about 0->1 mm
     spv=0.0000; % floor value used to clamp negative densities (see loop below)
-    dx = X(2) - X(1);
+    dx = 1/nbox;
     dt = 0.0015;
     Af = zeros(nbox,nbox,f*10); % active-tip density over time
     Sf = zeros(nbox,nbox,f*10); % stalk density over time
@@ -152,10 +152,14 @@ end
           % Update the three densities for boxes with enough surrounding
           % concentration that have not stalled; otherwise freeze them
           if Ct > 0.1 & stall(i,j)>0.1 % check if there is some concentration around
-            cij=cij+20.;
-            Af(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*aij*(1-gcb)+dt*ste;
+           if cij<90. % clamp cij to avoid division blow-up when concentration is very low
+                  cij=90.;
+           end
+ %           Af(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb-dt*pc*aij*(1-gcb)+dt*ste;
+            Af(i,j,t) = aij + dt*dif*(d2c*gc*aij/cij+m2dc*dgc*aij/cij+dadc*gc/cij-m2dc*gc*aij/cij^2)+dt*rb*aij*gcb*gc-dt*pc*aij*(1-gc)+dt*ste;
             Sf(i,j,t) = Sf(i,j,t-1) + dt*rg*aij*gc;
-            Cf(i,j,t) = Cf(i,j,t-1)+dt*pc*aij*(1-gcb);
+%            Cf(i,j,t) = Cf(i,j,t-1)+dt*pc*aij*(1-gcb);
+            Cf(i,j,t) = Cf(i,j,t-1)+dt*pc*aij*(1-gc);
           else
             Af(i,j,t) = Af(i,j,t-1);
             Sf(i,j,t) = Sf(i,j,t-1);
@@ -172,7 +176,7 @@ end
         end
           % Check the restart condition: a box can restart once its gate
           % value rises back above 0.9
-        if gc>0.9
+        if gc>0.1
           stall(i,j)=1;
         end
 
